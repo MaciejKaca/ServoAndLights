@@ -6,7 +6,7 @@
 
 Servo servo;
 LightsAndServoMsg message;
-BlinkerLights blinkerLights;
+TurnSignalCommand turnSignalCommmand;
 
 void setup()
 {
@@ -29,7 +29,7 @@ void setup()
   digitalWrite(HEADLIGHT_PIN, LOW);
 
   servo.write(CENTER_SERVO);
-  blinkerLights = NONE;
+  turnSignalCommmand = TURN_SIGNAL_OFF;
 }
 
 void loop()
@@ -37,8 +37,8 @@ void loop()
     if( isMessagePresent() )
     {
       receiveMessage(message);
-      handleMessage(message, servo, blinkerLights);
+      handleMessage(message, servo, turnSignalCommmand);
     }
 
-    blinkWithoutDelay(blinkerLights);
+    blinkWithoutDelay(turnSignalCommmand);
 }

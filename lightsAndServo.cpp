@@ -27,13 +27,13 @@ void toggleLED(DevicesPins ledPin)
 
 void setLightBrigtness(DevicesPins ledPin, uint8_t brightness)
 {
-    if(ledPin != SERVO_PIN &&  OFF <= brightness && brightness <= MAX_LIGHT_BRIGHTNESS)
+    if(ledPin != SERVO_PIN && brightness >= MIN_LIGHT_BRIGHTNESS && brightness <= MAX_LIGHT_BRIGHTNESS)
     {
         analogWrite(ledPin, brightness);
     }
 }
 
-void blinkWithoutDelay(BlinkerLights &lights)
+void blinkWithoutDelay(TurnSignalCommand &turnSingalLightCommand)
 {
   unsigned long previousTime = 0;
 
@@ -45,39 +45,39 @@ void blinkWithoutDelay(BlinkerLights &lights)
     {
         previousTime = currentTime;
 
-        switch (lights)
+        switch (turnSingalLightCommand)
         {
-        case LEFT:
-            setLightBrigtness(RIGHT_BLINKER_LIGHT_PIN, OFF);
-            toggleLED(LEFT_BLINKER_LIGHT_PIN);
-            break;
-        
-        case RIGHT:
-            setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, OFF);
-            toggleLED(RIGHT_BLINKER_LIGHT_PIN);
-            break;
-        
-        case BOTH:
-            toggleLED(LEFT_BLINKER_LIGHT_PIN);
-            toggleLED(RIGHT_BLINKER_LIGHT_PIN);
-            break;
-        
-        case NONE:
-            setLightBrigtness(RIGHT_BLINKER_LIGHT_PIN, OFF);
-            setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, OFF);
-        
-        default:
-            break;
+            case LEFT:
+                setLightBrigtness(RIGHT_BLINKER_LIGHT_PIN, TURN_SIGNAL_OFF);
+                toggleLED(LEFT_BLINKER_LIGHT_PIN);
+                break;
+            
+            case RIGHT:
+                setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, TURN_SIGNAL_OFF);
+                toggleLED(RIGHT_BLINKER_LIGHT_PIN);
+                break;
+            
+            case HAZARD_LIGHTS:
+                toggleLED(LEFT_BLINKER_LIGHT_PIN);
+                toggleLED(RIGHT_BLINKER_LIGHT_PIN);
+                break;
+            
+            case TURN_SIGNAL_OFF:
+                setLightBrigtness(RIGHT_BLINKER_LIGHT_PIN, TURN_SIGNAL_OFF);
+                setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, TURN_SIGNAL_OFF);
+            
+            default:
+                break;
         }
     }
   }
 }
 
-int turnServo(Servo &servo, int8_t degree)
+uint8_t turnServo(Servo &servo, int8_t degree)
 {
-    int8_t degreeToTurn = CENTER_SERVO;
+    uint8_t degreeToTurn = CENTER_SERVO;
 
-    if(degree < 0)
+    if(0 > degree)
     {
         if( (CENTER_SERVO + degree) >= LEFT_WHEEL_MAX )
         {
@@ -85,18 +85,18 @@ int turnServo(Servo &servo, int8_t degree)
         }
         else
         {
-            degreeToTurn = (LEFT_WHEEL_MAX);
+            degreeToTurn = LEFT_WHEEL_MAX;
         }
     }
     else
     {
-        if( (CENTER_SERVO + degree) <= RIGHT_WHEEL_MAX )
+        if( (CENTER_SERVO + (uint8_t)degree) <= RIGHT_WHEEL_MAX )
         {
-            degreeToTurn = (CENTER_SERVO + degree);
+            degreeToTurn = (CENTER_SERVO + (uint8_t)degree);
         }
         else
         {
-            degreeToTurn = (RIGHT_WHEEL_MAX);
+            degreeToTurn = RIGHT_WHEEL_MAX;
         }
     }
     
@@ -109,68 +109,43 @@ void centerServo(Servo &servo, int8_t degree)
     CENTER_SERVO = turnServo(servo, degree);
 }
 
-void handleMessage(LightsAndServoMsg message, Servo &servo, BlinkerLights &blinkerLights)
+void handleMessage(LightsAndServoMsg message, Servo &servo, TurnSignalCommand &turnSignalCommand)
 {
     switch (message.device)
     {
-    case BRAKE_LIGHT:
-        setLightBrigtness(LEFT_BRAKE_LIGHT_PIN, message.command);
-        setLightBrigtness(RIGHT_BRAKE_LIGHT_PIN, message.command);
-        break;
-    
-    case REVERSE_LIGHT:
-        setLightBrigtness(REVERSE_LIGHT_PIN, message.command);
-        break;
+        case BRAKE_LIGHT:
+            setLightBrigtness(LEFT_BRAKE_LIGHT_PIN, message.brakeLightsCommand);
+            setLightBrigtness(RIGHT_BRAKE_LIGHT_PIN, message.brakeLightsCommand);
+            break;
 
-    case LEFT_BLINKER_LIGHT:
-        if(message.command == ON)
-        {
-            blinkerLights = LEFT;
-        }
-        else if(message.command == OFF)
-        {
-            blinkerLights = NONE;
-        }
-        break;
+        case REVERSE_LIGHT:
+            setLightBrigtness(REVERSE_LIGHT_PIN, message.reverseLightCommand);
+            break;
 
-    case RIGHT_BLINKER_LIGHT:
-        if(message.command == ON)
-        {
-            blinkerLights = RIGHT;
-        }
-        else if(message.command == OFF)
-        {
-            blinkerLights = NONE;
-        }
-        break;
-    
-    case HAZARD_LIGHTS:
-        if(message.command == ON)
-        {
-            blinkerLights = BOTH;
-        }
-        else if(message.command == OFF)
-        {
-            blinkerLights = NONE;
-        }
-        break;
+        case TURN_SIGNAL:
+            if(message.turnSignalCommand == HAZARD_LIGHTS)
+            {
+                setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, TURN_SIGNAL_OFF);
+                setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, TURN_SIGNAL_OFF);
+            }
+            turnSignalCommand = message.turnSignalCommand;
+            break;
 
-    case HEADLIGHT:
-        setLightBrigtness(HEADLIGHT_PIN, message.command);
-        break;
+        case HEADLIGHT:
+            setLightBrigtness(HEADLIGHT_PIN, message.headLightCommand);
 
-    case SERVO:
-        if(message.command == TURN)
-        {
-            turnServo(servo, message.degrees);
-        }
-        else if(message.command == CENTER_SERVO)
-        {
-            centerServo(servo, message.degrees);
-        }
-        break;
+        case SERVO:
+            if(message.servoInfo.command == TURN)
+            {
+                turnServo(servo, message.servoInfo.degrees);
+            }
+            else if(message.servoInfo.command == SET_NEW_ZERO)
+            {
+                centerServo(servo, message.servoInfo.degrees);
+            }
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
 }
