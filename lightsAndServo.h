@@ -1,8 +1,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <interface.h>
 #include <Servo.h>
+
+#include <interface.h>
 
 enum BlinkerLights
 {
@@ -28,9 +29,9 @@ const uint8_t REVERSE_LIGHT_BRIGHTNESS = 10;
 const uint8_t DAYLIGHT_BRIGHTNESS = 10;
 const uint16_t BLINKER_LIGHTS_FREQUENCY = 500; //milliseconds
 const uint8_t MAX_WHEEL_TURN_DEGREE = 40;
-uint8_t CENTER_SERVO = 95;
-uint8_t LEFT_WHEEL_MAX = 50;
-uint8_t RIGHT_WHEEL_MAX = 135;
+const uint8_t LEFT_WHEEL_MAX = 50;
+const uint8_t RIGHT_WHEEL_MAX = 135;
+static uint8_t CENTER_SERVO = 95;
 
 bool isMessagePresent();
 
@@ -38,4 +39,4 @@ void handleMessage(LightsAndServoMsg message, Servo &servo, BlinkerLights &blink
 
 void receiveMessage(LightsAndServoMsg &message);
 
-static int blinkProtothread(struct pt *pt, BlinkerLights light)
+void blinkWithoutDelay(BlinkerLights &lights);

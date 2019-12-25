@@ -1,8 +1,8 @@
-#include "lightsAndServo.h"
-
-#include <pt.h>
 #include <Arduino.h>
 #include <stdlib.h>
+#include <Servo.h>
+
+#include "lightsAndServo.h"
 
 bool isMessagePresent()
 {
@@ -15,56 +15,62 @@ bool isMessagePresent()
 
 void receiveMessage(LightsAndServoMsg &message)
 {
-     Serial.readBytes((char*)&message, sizeof(LightsAndServoMsg));
+    //Serial.readBytes((char *) &message, sizeof(LightsAndServoMsg));
 }
 
-void toggleLED(Devices LED_PIN)
+void toggleLED(DevicesPins ledPin)
 {
-  boolean ledstate = digitalRead(LED_PIN); // get LED state
+  boolean ledstate = digitalRead(ledPin); // get LED state
   ledstate ^= 1;   // toggle LED state using xor
-  digitalWrite(LED_PIN, ledstate); // write inversed state back
+  digitalWrite(ledPin, ledstate); // write inversed state back
 }
 
 void setLightBrigtness(DevicesPins ledPin, uint8_t brightness)
 {
-    if(ledPin != SERVO_PIN && brightness >= OFF && brightness <= MAX_LIGHT_BRIGHTNESS)
+    if(ledPin != SERVO_PIN &&  OFF <= brightness && brightness <= MAX_LIGHT_BRIGHTNESS)
     {
         analogWrite(ledPin, brightness);
     }
 }
 
-static int blinkProtothread(struct pt *pt, BlinkerLights &light)
+void blinkWithoutDelay(BlinkerLights &lights)
 {
-  static unsigned long timestamp = 0;
-  PT_BEGIN(pt);
+  unsigned long previousTime = 0;
+
   while(true)
-  { // never stop 
-    /* each time the function is called the second boolean
-    *  argument "millis() - timestamp > BLINKER_LIGHTS_FREQUENCY" is re-evaluated
-    *  and if false the function exits after that. */
-    PT_WAIT_UNTIL(pt, millis() - timestamp > BLINKER_LIGHTS_FREQUENCY );
-    timestamp = millis(); // take a new timestamp
+  {
+    unsigned long currentTime = millis();
     
-    switch (light)
+    if (currentTime - previousTime >= BLINKER_LIGHTS_FREQUENCY)
     {
-    case LEFT:
-        toggleLED(LEFT_BLINKER_LIGHT);
-        break;
-    
-    case RIGHT:
-        toggleLED(RIGHT_BLINKER_LIGHT);
-        break;
-    
-    case BOTH:
-        toggleLED(LEFT_BLINKER_LIGHT);
-        toggleLED(RIGHT_BLINKER_LIGHT);
-        break;
-    
-    default:
-        break;
+        previousTime = currentTime;
+
+        switch (lights)
+        {
+        case LEFT:
+            setLightBrigtness(RIGHT_BLINKER_LIGHT_PIN, OFF);
+            toggleLED(LEFT_BLINKER_LIGHT_PIN);
+            break;
+        
+        case RIGHT:
+            setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, OFF);
+            toggleLED(RIGHT_BLINKER_LIGHT_PIN);
+            break;
+        
+        case BOTH:
+            toggleLED(LEFT_BLINKER_LIGHT_PIN);
+            toggleLED(RIGHT_BLINKER_LIGHT_PIN);
+            break;
+        
+        case NONE:
+            setLightBrigtness(RIGHT_BLINKER_LIGHT_PIN, OFF);
+            setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, OFF);
+        
+        default:
+            break;
+        }
     }
   }
-  PT_END(pt);
 }
 
 int turnServo(Servo &servo, int8_t degree)
@@ -79,7 +85,7 @@ int turnServo(Servo &servo, int8_t degree)
         }
         else
         {
-            degreeToTurn = (RIGHT_WHEEL_MAX);
+            degreeToTurn = (LEFT_WHEEL_MAX);
         }
     }
     else
@@ -90,7 +96,7 @@ int turnServo(Servo &servo, int8_t degree)
         }
         else
         {
-            degreeToTurn = (LEFT_WHEEL_MAX);
+            degreeToTurn = (RIGHT_WHEEL_MAX);
         }
     }
     
@@ -114,7 +120,8 @@ void handleMessage(LightsAndServoMsg message, Servo &servo, BlinkerLights &blink
     
     case REVERSE_LIGHT:
         setLightBrigtness(REVERSE_LIGHT_PIN, message.command);
-    
+        break;
+
     case LEFT_BLINKER_LIGHT:
         if(message.command == ON)
         {
@@ -124,6 +131,7 @@ void handleMessage(LightsAndServoMsg message, Servo &servo, BlinkerLights &blink
         {
             blinkerLights = NONE;
         }
+        break;
 
     case RIGHT_BLINKER_LIGHT:
         if(message.command == ON)
@@ -134,6 +142,7 @@ void handleMessage(LightsAndServoMsg message, Servo &servo, BlinkerLights &blink
         {
             blinkerLights = NONE;
         }
+        break;
     
     case HAZARD_LIGHTS:
         if(message.command == ON)
@@ -144,6 +153,11 @@ void handleMessage(LightsAndServoMsg message, Servo &servo, BlinkerLights &blink
         {
             blinkerLights = NONE;
         }
+        break;
+
+    case HEADLIGHT:
+        setLightBrigtness(HEADLIGHT_PIN, message.command);
+        break;
 
     case SERVO:
         if(message.command == TURN)
@@ -154,6 +168,7 @@ void handleMessage(LightsAndServoMsg message, Servo &servo, BlinkerLights &blink
         {
             centerServo(servo, message.degrees);
         }
+        break;
 
     default:
         break;

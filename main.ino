@@ -1,15 +1,17 @@
-#include "lightsAndServo.h"
-
+#include <Arduino.h>
 #include <Servo.h>
+
 #include <interface.h>
+#include "lightsAndServo.h"
 
 Servo servo;
 LightsAndServoMsg message;
-static struct pt blinkThread;
 BlinkerLights blinkerLights;
 
 void setup()
 {
+  Serial.begin(9600);
+
   pinMode(LEFT_BRAKE_LIGHT_PIN, OUTPUT);
   pinMode(RIGHT_BRAKE_LIGHT_PIN, OUTPUT);
   pinMode(REVERSE_LIGHT_PIN, OUTPUT);
@@ -38,5 +40,5 @@ void loop()
       handleMessage(message, servo, blinkerLights);
     }
 
-    blinkProtothread(&blinkThread, blinkerLights);
+    blinkWithoutDelay(blinkerLights);
 }
