@@ -8,6 +8,9 @@ Servo servo;
 LightsAndServoMsg message;
 TurnSignalCommand turnSignalCommmand;
 
+unsigned long previousTime;
+unsigned long currentTime;
+
 void setup()
 {
   Serial.begin(9600);
@@ -30,6 +33,8 @@ void setup()
 
   servo.write(CENTER_SERVO);
   turnSignalCommmand = TURN_SIGNAL_OFF;
+
+  previousTime = 0;
 }
 
 void loop()
@@ -40,5 +45,5 @@ void loop()
       handleMessage(message, servo, turnSignalCommmand);
     }
 
-    blinkWithoutDelay(turnSignalCommmand);
+    blinkWithoutDelay(turnSignalCommmand, currentTime, previousTime);
 }

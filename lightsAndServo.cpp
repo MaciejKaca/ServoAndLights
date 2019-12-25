@@ -15,7 +15,7 @@ bool isMessagePresent()
 
 void receiveMessage(LightsAndServoMsg &message)
 {
-    //Serial.readBytes((char *) &message, sizeof(LightsAndServoMsg));
+    Serial.readBytes((char *) &message, sizeof(LightsAndServoMsg));
 }
 
 void toggleLED(DevicesPins ledPin)
@@ -33,18 +33,13 @@ void setLightBrigtness(DevicesPins ledPin, uint8_t brightness)
     }
 }
 
-void blinkWithoutDelay(TurnSignalCommand &turnSingalLightCommand)
-{
-  unsigned long previousTime = 0;
+void blinkWithoutDelay(TurnSignalCommand &turnSingalLightCommand, unsigned long & currentTime, unsigned long & previousTime)
+{   
+    currentTime = millis();
 
-  while(true)
-  {
-    unsigned long currentTime = millis();
-    
     if (currentTime - previousTime >= BLINKER_LIGHTS_FREQUENCY)
     {
         previousTime = currentTime;
-
         switch (turnSingalLightCommand)
         {
             case LEFT:
@@ -69,7 +64,6 @@ void blinkWithoutDelay(TurnSignalCommand &turnSingalLightCommand)
             default:
                 break;
         }
-    }
   }
 }
 
