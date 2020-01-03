@@ -120,7 +120,7 @@ void handleMessage(LightsAndServoMsg message, Servo &servo, TurnSignalCommand &t
             if(message.turnSignalCommand == HAZARD_LIGHTS)
             {
                 setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, TURN_SIGNAL_OFF);
-                setLightBrigtness(LEFT_BLINKER_LIGHT_PIN, TURN_SIGNAL_OFF);
+                setLightBrigtness(RIGHT_BLINKER_LIGHT_PIN, TURN_SIGNAL_OFF);
             }
             turnSignalCommand = message.turnSignalCommand;
             break;
